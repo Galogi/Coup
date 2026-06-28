@@ -5,6 +5,7 @@
  */
 #pragma once
 #include <SFML/Graphics.hpp>
+#include <optional>
 #include <vector>
 #include "GameState.hpp"
 
@@ -37,8 +38,8 @@ private:
     sf::Text           backText;
 
     float scaleX = 1.f, scaleY = 1.f;
-    sf::Cursor arrowCursor;
-    sf::Cursor handCursor;
+    std::optional<sf::Cursor> arrowCursor;
+    std::optional<sf::Cursor> handCursor;
 
   
     inline static const sf::Color GOLD_COLOR   = sf::Color(212, 175,  55);

@@ -10,8 +10,6 @@
  */
 
 #include "GameLogic.hpp"
-#include <iostream>
-#include <chrono>
 
 
 std::string GameLogic::roleToString(Role r) {
@@ -55,7 +53,6 @@ void GameLogic::markFirstRoundDoneIfNeeded() {
         }
     }
     if (allDrew && firstRound) {
-        std::cout << "[LOGIC] All players drew. Ending first round.\n";
         firstRound = false;
                        
         setupCompleted = true;     
@@ -77,17 +74,10 @@ void GameLogic::selectRandomCardForPlayer(size_t playerIndex) {
 
     std::uniform_int_distribution<size_t> dist(0, allRoles.size() - 1);
     size_t index = dist(rng);
-    std::cout << "[DEBUG] Random index: " << index << "\n";
     Role chosen = allRoles[index];
-    std::cout << "[DEBUG] Player " << playerIndex + 1 
-          << " was assigned the role: " << roleToString(chosen) << "\n";
-    
 
     std::string playerName = players[playerIndex]->getName();
     players[playerIndex] = createPlayerFromRole(playerName, chosen);
-    std::cout << "[DEBUG] Player " << playerIndex + 1
-          << " was assigned the role: " << roleToString(chosen) << "\n";
-    
 
     drawnFlags[playerIndex] = true;  
 }
@@ -108,8 +98,6 @@ size_t GameLogic::getCurrentPlayerIndex() const {
 void GameLogic::nextPlayer() {
     if (extraTurns > 0) {
         --extraTurns;
-        std::cout << "[LOGIC] Bribe active — Player " << currentPlayerIndex + 1
-                  << " gets another turn (" << extraTurns << " remaining)\n";
         return;
     }
 
@@ -121,12 +109,9 @@ void GameLogic::nextPlayer() {
     } while (players[currentPlayerIndex]->isEliminated() &&
              currentPlayerIndex != originalIndex); // כדי להימנע מלולאה אינסופית
 
-    std::cout << "[LOGIC] Next player: " << currentPlayerIndex + 1 << "\n";
-
     Player& current = *players[currentPlayerIndex];
     if (current.getRole() == Role::Merchant && current.getCoins() > 3) {
         current.changeCoins(1);
-        std::cout << "[LOGIC] Merchant bonus: +1 coin at start of turn\n";
     }
 }
 
@@ -175,7 +160,6 @@ std::vector<std::unique_ptr<Player>>& GameLogic::getPlayers() {
 }
 
 void GameLogic::startGameLoop() {
-    std::cout << "\n🎮 המשחק התחיל! 🎮\n";
     currentPlayerIndex = 0;
 }
 void GameLogic::performTax() {
@@ -202,28 +186,13 @@ void GameLogic::performArrest(Player& target) {
     if (target.getRole() == Role::General) {
         target.changeCoins(1);
         arrestingPlayer.changeCoins(-1);
-        std::cout << "[LOGIC] Arrested General! Coin refunded to " << target.getName() << "\n";
     }
 }
 
 void GameLogic::performSanction(Player& target) {
     Player& attacker = *players[currentPlayerIndex];
 
-    attacker.sanction(target); 
-
-    target.blockTaxForTurns(); 
-    target.blockGatherForTurns(); 
-
-    if (target.getRole() == Role::Baron) {
-        target.changeCoins(1);
-        std::cout << "[LOGIC] Baron received 1 coin compensation due to Sanction\n";
-    }
-
-    if (target.getRole() == Role::Judge) {
-        attacker.changeCoins(-1);
-        std::cout << "[LOGIC] Sanctioned a Judge! " << attacker.getName()
-                  << " loses an extra coin.\n";
-    }
+    attacker.sanction(target);
 }
 
 bool GameLogic::performCoup(Player& target)
@@ -238,8 +207,6 @@ bool GameLogic::performCoup(Player& target)
 
     target.eliminate();
     --aliveCount;                                  
-    std::cout << "[LOGIC] " << target.getName()
-              << " was eliminated by a Coup!\n";
 
     if (isGameOver() && onGameOver) {              
         onGameOver(getWinner());
@@ -254,7 +221,6 @@ void GameLogic::performBlockTax(Player& target) {
         throw std::runtime_error("Only Governor can block tax");
 
     target.blockTaxForTurns();  
-    std::cout << "[INFO] Blocked " << target.getName() << " from taxing next turn.\n";
 }
 void GameLogic::performSpyPeek(Player& target) {
     if (players[currentPlayerIndex]->getRole() != Role::Spy)
@@ -283,7 +249,7 @@ void GameLogic::performInvest() {
     if (!baron)
         throw std::runtime_error("Internal error: player is not actually a BaronPlayer");
 
-    baron->Invest();  
+    baron->invest();
 }
 
 
@@ -295,8 +261,7 @@ void GameLogic::performBlockCoup(Player& target) {
     if (!general)
         throw std::runtime_error("Internal error: player is not actually a GeneralPlayer");
 
-    general->BlockCoup(target); 
-    general->changeCoins(-5);  
+    general->blockCoup(target);
 }
 
 void GameLogic::performBlockBribe(Player& target) {

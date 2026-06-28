@@ -90,8 +90,39 @@ TEST_CASE("GameLogic - performSanction effects") {
     logic.performSanction(*logic.getPlayers()[1]);
     CHECK(logic.getPlayers()[1]->getTaxBlockTurns() == 1);
     CHECK(logic.getPlayers()[1]->getGatherBlockTurns() == 1);
-    CHECK(logic.getPlayers()[1]->getCoins() == 5);
+    CHECK(logic.getPlayers()[1]->getCoins() == 4);
     CHECK(logic.getPlayers()[0]->getCoins() == 3);
+}
+
+TEST_CASE("GameLogic - performSanction charges Judge penalty once") {
+    auto attacker = std::make_unique<GovernorPlayer>("G");
+    auto judge = std::make_unique<JudgePlayer>("J");
+    attacker->changeCoins(6);
+
+    std::vector<std::unique_ptr<Player>> ps;
+    ps.push_back(std::move(attacker));
+    ps.push_back(std::move(judge));
+    GameLogic logic(std::move(ps));
+
+    logic.performSanction(*logic.getPlayers()[1]);
+    CHECK(logic.getPlayers()[0]->getCoins() == 2);
+    CHECK(logic.getPlayers()[1]->getTaxBlockTurns() == 1);
+    CHECK(logic.getPlayers()[1]->getGatherBlockTurns() == 1);
+}
+
+TEST_CASE("GameLogic - General block coup costs five coins once") {
+    auto general = std::make_unique<GeneralPlayer>("General");
+    auto target = std::make_unique<JudgePlayer>("Target");
+    general->changeCoins(5);
+
+    std::vector<std::unique_ptr<Player>> ps;
+    ps.push_back(std::move(general));
+    ps.push_back(std::move(target));
+    GameLogic logic(std::move(ps));
+
+    logic.performBlockCoup(*logic.getPlayers()[1]);
+    CHECK(logic.getPlayers()[0]->getCoins() == 0);
+    CHECK(logic.getPlayers()[1]->getCoupBlockTurns() == 1);
 }
 TEST_CASE("GameLogic - performCoup eliminates and ends game") {
     auto gov = std::make_unique<GovernorPlayer>("Gov");

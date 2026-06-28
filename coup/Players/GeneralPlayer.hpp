@@ -32,13 +32,16 @@ public:
 	
 	
 
-	void BlockCoup(Player& target) {
+	void blockCoup(Player& target) {
 		if (coins < 5) {
 			throw std::runtime_error("Not enough coins to perform Coup block for ally");
 		}
 
-		std::cout << "[General] Blocking coup for ally: " << target.getName() << "\n";
 		changeCoins(-5); 
 		target.addCoupBlockFromAlly(); 
+	}
+
+	void BlockCoup(Player& target) {
+		blockCoup(target);
 	}
 };

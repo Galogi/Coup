@@ -4,6 +4,7 @@
  */
 #pragma once
 #include <SFML/Graphics.hpp>
+#include <optional>
 #include "GameState.hpp"
 
 class MainMenuGUI {
@@ -17,8 +18,8 @@ public:
 private:
 	bool startClicked = false;
     sf::RenderWindow& window;
-    sf::Sprite backgroundSprite;
     sf::Texture backgroundTexture;
+    sf::Sprite backgroundSprite;
 
     sf::FloatRect startButtonBounds;
     sf::FloatRect exitButtonBounds;
@@ -26,11 +27,11 @@ private:
     sf::RectangleShape startOverlay;
     sf::RectangleShape exitOverlay;
 
-    sf::Text feedback;
     sf::Font font;
+    sf::Text feedback;
 
-    sf::Cursor arrowCursor;
-    sf::Cursor handCursor;
+    std::optional<sf::Cursor> arrowCursor;
+    std::optional<sf::Cursor> handCursor;
 
     float scaleX;
     float scaleY;

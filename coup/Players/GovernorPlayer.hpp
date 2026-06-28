@@ -31,12 +31,10 @@ public:
 
     void tax() override {
         if (taxBlockTurns > 0) {
-            std::cout << "[Governor] Tax blocked.\n";
             taxBlockTurns = 0;
             return;
         }
         changeCoins(3); 
-        std::cout << "[Governor] Collected 3 coins via tax.\n";
     }
 	void blockTax(Player& target) {
     

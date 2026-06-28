@@ -41,7 +41,6 @@ void Player::gather() {
 
 void Player::tax() {
     if (taxBlockTurns > 0) {
-        std::cout << "[INFO] Blocked from performing tax for this turn.\n";
         taxBlockTurns = 0;
         return;
     }
@@ -54,18 +53,15 @@ void Player::bribe() {
 
 void Player::arrest(Player& target) {
     if (arrestBlockTurns > 0) {
-        std::cout << "[INFO] Arrest blocked due to previous Spy action.\n";
         arrestBlockTurns = 0;
         return;
     }
 
     if (target.getRole() == Role::General) {
-        std::cout << "[INFO] Cannot arrest a General!\n";
         return;
     }
 
      if (target.getRole() == Role::Merchant) {
-        std::cout << "[INFO] Lost 2 coins to bank!\n";
         target.changeCoins(-2);
         return;
     }
@@ -105,13 +101,11 @@ void Player::coup(Player& target) {
     }
 
     if (target.coupBlockTurns > 0) {
-        std::cout << "[INFO] Coup blocked! Target loses block, attacker pays 1 coin.\n";
         target.coupBlockTurns -= 1;
         changeCoins(-7);
         return;
     }
 
-    std::cout << "[INFO] " << target.getName() << " has been eliminated by coup.\n";
     changeCoins(-7);
     target.eliminate();
 }

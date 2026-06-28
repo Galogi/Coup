@@ -32,14 +32,9 @@ public:
     
     void peekAndBlock(Player& target) {
         if (target.isEliminated()) {
-            std::cout << "[Spy] Target is eliminated.\n";
             return;
         }
 
-        std::cout << "[Spy] " << target.getName()
-                  << " has " << target.getCoins() << " coins.\n";
-
         target.blockArrestForTurns(); 
-        std::cout << "[Spy] Arrest blocked for " << target.getName() << "'s next turn.\n";
     }
 };

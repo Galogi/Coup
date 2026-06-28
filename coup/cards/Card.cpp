@@ -20,9 +20,15 @@ std::map<Role, std::shared_ptr<sf::Texture>> Card::textures;
  * @param role The role assigned to this card.
  * @throws std::runtime_error If the texture for the role cannot be loaded.
  */
-Card::Card(Role role) : role(role) {
-    if (textures.empty()) loadAllTextures();
-    sprite.setTexture(*textures[role]);
+Card::Card(Role role)
+: role(role),
+  sprite(*[role]() {
+      if (textures.empty()) {
+          loadAllTextures();
+      }
+      return textures.at(role);
+  }())
+{
 }
 
 /**

@@ -1,4 +1,3 @@
-
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
 #include "../Players/Player.hpp"
@@ -8,16 +7,6 @@
 #include "../Players/GeneralPlayer.hpp"
 #include "../Players/MerchantPlayer.hpp"
 #include "../Players/SpyPlayer.hpp"
-// test_player_doctest.cpp
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
-#include "doctest.h"
-#include "Players/Player.hpp"
-#include "Players/BaronPlayer.hpp"
-#include "Players/GovernorPlayer.hpp"
-#include "Players/JudgePlayer.hpp"
-#include "Players/GeneralPlayer.hpp"
-#include "Players/MerchantPlayer.hpp"
-#include "Players/SpyPlayer.hpp"
 
 TEST_CASE("Basic coin management") {
     MerchantPlayer mp("Maya");
@@ -124,17 +113,17 @@ TEST_CASE("Spy peeking") {
 TEST_CASE("Baron investing") {
     BaronPlayer baron("Bar");
     baron.changeCoins(4);
-    baron.Invest();
+    baron.invest();
     CHECK(baron.getCoins() == 7);
     baron.changeCoins(-7);
-    CHECK_THROWS(baron.Invest());
+    CHECK_THROWS(baron.invest());
 }
 
 TEST_CASE("General blocks coup for ally") {
     GeneralPlayer gen("Gen");
     JudgePlayer ally("Ally");
     gen.changeCoins(5);
-    gen.BlockCoup(ally);
+    gen.blockCoup(ally);
     CHECK(ally.getCoupBlockTurns() == 1);
     CHECK(gen.getCoins() == 0);
 }

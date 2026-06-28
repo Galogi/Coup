@@ -1,13 +1,16 @@
-
-TARGET = coup
-
+TARGET = coup.exe
+TEST_LOGIC_TARGET = test_logic.exe
+TEST_PLAYERS_TARGET = test_players.exe
 
 CXX = g++
-CXXFLAGS = -std=c++17 -fsanitize=address -g
+SANITIZE ?=
+CPPFLAGS = -I. -I./Players -I./cards -I./Logic -I./Gui
+CXXFLAGS = -std=c++17 -Wall -Wextra -Wpedantic -g $(SANITIZE) $(shell pkg-config --cflags sfml-all 2>/dev/null)
 
-
+LIBS = $(shell pkg-config --libs sfml-all 2>/dev/null)
+ifeq ($(strip $(LIBS)),)
 LIBS = -lsfml-graphics -lsfml-window -lsfml-system
-
+endif
 
 SRCS = main.cpp \
        Gui/GUI.cpp \
@@ -26,21 +29,26 @@ all: $(TARGET)
 $(TARGET): $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^ $(LIBS)
 
+%.o: %.cpp
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -c -o $@ $<
 
 test_logic:
-	$(CXX) $(CXXFLAGS) -I. -I./Test -I./Players -I./cards -I./Logic \
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I./Test \
 	Test/GameLogic_Test.cpp Logic/GameLogic.cpp Players/*.cpp cards/Card.cpp \
-	-o test_runner $(LIBS)
-	./test_runner
-
+	-o $(TEST_LOGIC_TARGET) $(LIBS)
+	./$(TEST_LOGIC_TARGET)
 
 test_players:
-	$(CXX) $(CXXFLAGS) -I./Test -I./Players -I./cards -I. \
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -I./Test \
 	Test/Test_Players.cpp Players/*.cpp cards/*.cpp Logic/GameLogic.cpp \
-	-o test_runner $(LIBS)
-	./test_runner
+	-o $(TEST_PLAYERS_TARGET) $(LIBS)
+	./$(TEST_PLAYERS_TARGET)
+
+test: test_logic test_players
 
 clean:
-	rm -f $(OBJS) $(TARGET) test_runner
+	rm -f $(OBJS) $(TARGET) $(TEST_LOGIC_TARGET) $(TEST_PLAYERS_TARGET) test_runner.exe
 
 rebuild: clean all
+
+.PHONY: all clean rebuild test test_logic test_players

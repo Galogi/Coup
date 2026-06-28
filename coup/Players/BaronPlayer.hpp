@@ -28,13 +28,16 @@ public:
         return card;
     }
 
-    void Invest()  {
+    void invest() {
         if (coins < 3) {
-            throw std::runtime_error("Not enough coins to invest (bribe)");
+            throw std::runtime_error("Not enough coins to invest");
         }
-        std::cout << "[Baron] Invested 3 coins and gained 6.\n";
         changeCoins(-3);
         changeCoins(6);
+    }
+
+    void Invest() {
+        invest();
     }
 
     

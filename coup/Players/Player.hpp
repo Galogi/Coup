@@ -16,15 +16,12 @@
 #include <string>
 #include <stdexcept>
 #include <memory>
-#include <iostream>
 #include "../cards/Card.hpp"
 
 class Player {
 public:
     explicit Player(const std::string& name);
     virtual ~Player() = default;
-
-    virtual void swapCard(Player& other) {}
 
     const std::string& getName() const;
     virtual Role getRole() const;

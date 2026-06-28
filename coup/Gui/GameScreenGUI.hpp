@@ -8,7 +8,7 @@
 #include <functional>
 #include <vector>
 #include <map>
-#include <random>
+#include <optional>
 
 #include "../Players/Player.hpp"
 #include "../cards/Card.hpp"
@@ -18,6 +18,8 @@
 
 
 struct PlayerTab {
+    PlayerTab(sf::Font& font, sf::Texture& placeholderTexture);
+
     sf::RectangleShape collapsedRect;
     sf::Text           collapsedText;
 
@@ -71,14 +73,13 @@ private:
     std::vector<PlayerTab> tabs;
 
     size_t       currentPlayer = 0;
-    std::mt19937 rng;
 
     
     sf::Texture tableTexture;
     sf::Sprite  tableSprite;
 
     sf::Font   font;
-    sf::Cursor arrowCursor, handCursor;
+    std::optional<sf::Cursor> arrowCursor, handCursor;
 
  
     sf::FloatRect      deckArea;

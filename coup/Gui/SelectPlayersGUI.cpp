@@ -6,14 +6,18 @@
 #include <iostream>
 
 SelectPlayersGUI::SelectPlayersGUI(sf::RenderWindow& win)
-: window(win)
+: window(win),
+  backgroundSprite(backgroundTexture),
+  title(font),
+  continueText(font),
+  backText(font)
 {
 
-    arrowCursor.loadFromSystem(sf::Cursor::Arrow);
-    handCursor.loadFromSystem(sf::Cursor::Hand);
+    arrowCursor = sf::Cursor::createFromSystem(sf::Cursor::Type::Arrow);
+    handCursor = sf::Cursor::createFromSystem(sf::Cursor::Type::Hand);
 
 
-    if (!font.loadFromFile("arial-font/arial.ttf")) {
+    if (!font.openFromFile("arial-font/arial.ttf")) {
         std::cerr << "Failed to load font!" << std::endl;
         exit(1);
     }
@@ -23,23 +27,20 @@ SelectPlayersGUI::SelectPlayersGUI(sf::RenderWindow& win)
         std::cerr << "Failed to load background!" << std::endl;
         exit(1);
     }
-    backgroundSprite.setTexture(backgroundTexture);
-
-   
+    backgroundSprite.setTexture(backgroundTexture, true);
     auto windowSize  = window.getSize();
     auto textureSize = backgroundTexture.getSize();
     scaleX = float(windowSize.x) / textureSize.x;
     scaleY = float(windowSize.y) / textureSize.y;
-    backgroundSprite.setScale(scaleX, scaleY);
+    backgroundSprite.setScale({scaleX, scaleY});
 
 
-    title.setFont(font);
     title.setString("Select Number of Players");
     title.setCharacterSize(36);
     title.setFillColor(sf::Color::White);
     {
         auto tb = title.getLocalBounds();
-        title.setPosition((windowSize.x - tb.width) * 0.5f - tb.left, 50);
+        title.setPosition({(windowSize.x - tb.size.x) * 0.5f - tb.position.x, 50.f});
     }
 
   
@@ -60,19 +61,18 @@ SelectPlayersGUI::SelectPlayersGUI(sf::RenderWindow& win)
         button.setOutlineColor(GOLD_COLOR);
         button.setOutlineThickness(3);
         float x = marginX + i*(btnW + spacing);
-        button.setPosition(x, btnY);
+        button.setPosition({x, btnY});
         playerButtons.push_back(button);
 
-        sf::Text text;
-        text.setFont(font);
+        sf::Text text(font);
         text.setString(std::to_string(players));
         text.setCharacterSize(32);
         text.setFillColor(GOLD_COLOR);
         auto bb = button.getGlobalBounds();
         auto lb = text.getLocalBounds();
         text.setPosition(
-            bb.left + (bb.width  - lb.width)  * 0.5f - lb.left,
-            bb.top  + (bb.height - lb.height) * 0.5f - lb.top
+            {bb.position.x + (bb.size.x  - lb.size.x)  * 0.5f - lb.position.x,
+             bb.position.y + (bb.size.y - lb.size.y) * 0.5f - lb.position.y}
         );
         playerTexts.push_back(text);
     }
@@ -82,8 +82,7 @@ SelectPlayersGUI::SelectPlayersGUI(sf::RenderWindow& win)
     continueButton.setFillColor(DARK_BUTTON);
     continueButton.setOutlineColor(GOLD_COLOR);
     continueButton.setOutlineThickness(3);
-    continueButton.setPosition((windowSize.x - 200.f)*0.5f, btnY - 40.f - 60.f);
-    continueText.setFont(font);
+    continueButton.setPosition({(windowSize.x - 200.f)*0.5f, btnY - 40.f - 60.f});
     continueText.setString("Continue");
     continueText.setCharacterSize(28);
     continueText.setFillColor(GOLD_COLOR);
@@ -91,8 +90,8 @@ SelectPlayersGUI::SelectPlayersGUI(sf::RenderWindow& win)
         auto cb = continueButton.getGlobalBounds();
         auto lb = continueText.getLocalBounds();
         continueText.setPosition(
-            cb.left + (cb.width  - lb.width)  * 0.5f - lb.left,
-            cb.top  + (cb.height - lb.height) * 0.5f - lb.top
+            {cb.position.x + (cb.size.x  - lb.size.x)  * 0.5f - lb.position.x,
+             cb.position.y + (cb.size.y - lb.size.y) * 0.5f - lb.position.y}
         );
     }
 
@@ -101,8 +100,7 @@ SelectPlayersGUI::SelectPlayersGUI(sf::RenderWindow& win)
     backButton.setFillColor(DARK_BUTTON);
     backButton.setOutlineColor(GOLD_COLOR);
     backButton.setOutlineThickness(2);
-    backButton.setPosition(20.f, 20.f);
-    backText.setFont(font);
+    backButton.setPosition({20.f, 20.f});
     backText.setString("Back");
     backText.setCharacterSize(20);
     backText.setFillColor(GOLD_COLOR);
@@ -110,14 +108,15 @@ SelectPlayersGUI::SelectPlayersGUI(sf::RenderWindow& win)
         auto bb2 = backButton.getGlobalBounds();
         auto lb2 = backText.getLocalBounds();
         backText.setPosition(
-            bb2.left + (bb2.width  - lb2.width)  * 0.5f - lb2.left,
-            bb2.top  + (bb2.height - lb2.height) * 0.5f - lb2.top
+            {bb2.position.x + (bb2.size.x  - lb2.size.x)  * 0.5f - lb2.position.x,
+             bb2.position.y + (bb2.size.y - lb2.size.y) * 0.5f - lb2.position.y}
         );
     }
 }
 
 void SelectPlayersGUI::handleEvent(const sf::Event& event, GameState& state) {
-    if (event.type == sf::Event::MouseButtonPressed && event.mouseButton.button == sf::Mouse::Left) {
+    if (const auto* mouseButton = event.getIf<sf::Event::MouseButtonPressed>();
+        mouseButton && mouseButton->button == sf::Mouse::Button::Left) {
         auto mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
    
         for (size_t i = 0; i < playerButtons.size(); ++i) {
@@ -145,7 +144,11 @@ void SelectPlayersGUI::update() {
     }
     if (!over && continueButton.getGlobalBounds().contains(mousePos)) over = true;
     if (!over && backButton.getGlobalBounds().contains(mousePos)) over = true;
-    window.setMouseCursor(over ? handCursor : arrowCursor);
+    if (over) {
+        if (handCursor) window.setMouseCursor(*handCursor);
+    } else {
+        if (arrowCursor) window.setMouseCursor(*arrowCursor);
+    }
 }
 
 void SelectPlayersGUI::render() {

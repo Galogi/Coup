@@ -9,10 +9,11 @@
 int main() {
     const int W = 700, H = 800;
     sf::RenderWindow window(
-        sf::VideoMode(W, H),
+        sf::VideoMode(sf::Vector2u(W, H)),
         "Coup",
         sf::Style::Titlebar | sf::Style::Close
     );
+    window.setFramerateLimit(60);
 
     LogicGame game;
     game.run(window);

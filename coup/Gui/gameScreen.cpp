@@ -3,19 +3,8 @@
  * @author Gal Maymon
  */
 
-#include "gameScreen.hpp" 
-#include <iostream>
+#include "gameScreen.hpp"
 
-
-static const char* toString(GameState s) {
-    switch (s) {
-        case GameState::MainMenu:      return "MainMenu";
-        case GameState::SelectPlayers: return "SelectPlayers";
-        case GameState::InGame:        return "InGame";
-        case GameState::GameOver:      return "GameOver";
-        default:                       return "Unknown";
-    }
-}
 
 void LogicGame::run(sf::RenderWindow& window)
 {
@@ -32,19 +21,18 @@ void LogicGame::run(sf::RenderWindow& window)
     while (window.isOpen())
     {
         
-        sf::Event event;
-        while (window.pollEvent(event))
+        while (const std::optional event = window.pollEvent())
         {
-            if (event.type == sf::Event::Closed) { window.close(); break; }
+            if (event->is<sf::Event::Closed>()) { window.close(); break; }
 
             switch (state)
             {
                 case GameState::MainMenu:
-                    mainMenu.handleEvent(event, state);
+                    mainMenu.handleEvent(*event, state);
                     break;
 
                 case GameState::SelectPlayers:
-                    selectPlayers.handleEvent(event, state);
+                    selectPlayers.handleEvent(*event, state);
 
                   
                     if (state == GameState::InGame && !gameGUI)
@@ -97,7 +85,7 @@ void LogicGame::run(sf::RenderWindow& window)
                 case GameState::InGame:
                 case GameState::GameOver:
                     if (gameGUI)
-                        gameGUI->handleEvent(event, state);
+                        gameGUI->handleEvent(*event, state);
                     break;
             }
         }
@@ -109,7 +97,7 @@ void LogicGame::run(sf::RenderWindow& window)
         }
         prevState = state;
 
-        /* ───────── ציור ───────── */
+        // Render the active screen.
         window.clear();
         switch (state)
         {

@@ -6,44 +6,70 @@
 #include "GameScreenGUI.hpp"
 #include <iostream>
 
+PlayerTab::PlayerTab(sf::Font& font, sf::Texture& placeholderTexture)
+: collapsedText(font),
+  moneyText(font),
+  cardText(font),
+  smallCardSprite(placeholderTexture)
+{
+}
 
 GameScreenGUI::GameScreenGUI(sf::RenderWindow& win, GameLogic& logicRef)
 : window(win),
   logic(logicRef),
   players(logicRef.getPlayers()),
-  rng(std::random_device{}()),
   currentPlayer(logicRef.getCurrentPlayerIndex()),
-  centerVisible(false)
+  tableSprite(tableTexture),
+  errorText(font),
+  centerSprite(tableTexture),
+  gatherText(font),
+  taxText(font),
+  bribeText(font),
+  arrestText(font),
+  sanctionText(font),
+  coupText(font),
+  governorBlockTaxText(font),
+  spyPeekText(font),
+  baronInvestText(font),
+  generalBlockCoupText(font),
+  judgeBlockBribeText(font),
+  winnerText(font),
+  newGameTxt(font),
+  exitTxt(font),
+  topNewGameTxt(font)
 {
     if (!tableTexture.loadFromFile("Gui/table_background.png")) {
         std::cerr << "Failed to load table background\n"; exit(1);
     }
-    tableSprite.setTexture(tableTexture);
+    tableSprite.setTexture(tableTexture, true);
     auto ws = window.getSize(), ts = tableTexture.getSize();
-    tableSprite.setScale(float(ws.x)/ts.x, float(ws.y)/ts.y);
+    tableSprite.setScale({float(ws.x)/ts.x, float(ws.y)/ts.y});
 
-    if (!font.loadFromFile("arial-font/arial.ttf")) {
+    if (!font.openFromFile("arial-font/arial.ttf")) {
         std::cerr << "Failed to load font\n"; exit(1);
     }
 
-    arrowCursor.loadFromSystem(sf::Cursor::Arrow);
-    handCursor.loadFromSystem(sf::Cursor::Hand);
+    arrowCursor = sf::Cursor::createFromSystem(sf::Cursor::Type::Arrow);
+    handCursor = sf::Cursor::createFromSystem(sf::Cursor::Type::Hand);
 
    
     float origX = 880, origY = 550, origW = 220, origH = 110;
     deckArea = sf::FloatRect(
-        origX * ws.x/ts.x, origY * ws.y/ts.y,
-        origW * ws.x/ts.x, origH * ws.y/ts.y
+        {origX * ws.x/ts.x, origY * ws.y/ts.y},
+        {origW * ws.x/ts.x, origH * ws.y/ts.y}
     );
-    deckHighlight.setPosition(deckArea.left, deckArea.top);
-    deckHighlight.setSize({deckArea.width, deckArea.height});
+    deckHighlight.setPosition(deckArea.position);
+    deckHighlight.setSize(deckArea.size);
     deckHighlight.setFillColor({0,0,0,0});
     deckHighlight.setOutlineColor({0,0,0,0});
     deckHighlight.setOutlineThickness(2.f);
 
     loadCardTextures();
 
-    tabs.resize(players.size());
+    tabs.reserve(players.size());
+    for (size_t i = 0; i < players.size(); ++i) {
+        tabs.emplace_back(font, tableTexture);
+    }
     drawnFlags.assign(players.size(), false);
     revealFlags.assign(players.size(), false);
     initTabs();
@@ -60,19 +86,18 @@ GameScreenGUI::GameScreenGUI(sf::RenderWindow& win, GameLogic& logicRef)
     // ⚙️ פונקציית עזר: כפתורים רגילים
     auto setupButton = [&](sf::RectangleShape& btn, sf::Text& txt, const std::string& label, int index, float offsetX = 0.f) {
         btn.setSize({bw, bh});
-        btn.setPosition(bx + offsetX, by + index * (bh + spacing));
+        btn.setPosition({bx + offsetX, by + index * (bh + spacing)});
         btn.setFillColor(buttonBackground);
         btn.setOutlineColor(buttonTextColor);
         btn.setOutlineThickness(1.5f);
 
-        txt.setFont(font);
         txt.setString(label);
         txt.setCharacterSize(18);
         txt.setFillColor(buttonTextColor);
-        txt.setPosition(bx + offsetX + 10, by + index * (bh + spacing) + 8);
+        txt.setPosition({bx + offsetX + 10, by + index * (bh + spacing) + 8});
     };
 
-    // 🎮 כפתורים רגילים
+    // General action buttons.
     setupButton(gatherButton,   gatherText,   "Gather",   0);
     setupButton(taxButton,      taxText,      "Tax",      1);
     setupButton(bribeButton,    bribeText,    "Bribe",    2);
@@ -90,21 +115,19 @@ GameScreenGUI::GameScreenGUI(sf::RenderWindow& win, GameLogic& logicRef)
 
     float boxW = 300.f, boxH = 50.f;
     errorBox.setSize({boxW, boxH});
-    errorBox.setPosition(window.getSize().x - boxW - 20.f, window.getSize().y - boxH - 20.f);
+    errorBox.setPosition({window.getSize().x - boxW - 20.f, window.getSize().y - boxH - 20.f});
 
     errorBox.setFillColor(sf::Color(30, 30, 30, 200));
     errorBox.setOutlineColor(sf::Color(212, 175, 55)); // זהב
     errorBox.setOutlineThickness(2.f);
 
-    errorText.setFont(font);
     errorText.setCharacterSize(18);
     errorText.setFillColor(sf::Color::White);
 
 
     overlay.setSize( sf::Vector2f(window.getSize()) );
-    overlay.setFillColor( sf::Color(0,0,0,180) );               // שחור שקוף
+    overlay.setFillColor( sf::Color(0,0,0,180) );
 
-    winnerText.setFont(font);
     winnerText.setCharacterSize(40);
     winnerText.setFillColor(sf::Color::White);
 
@@ -114,17 +137,15 @@ GameScreenGUI::GameScreenGUI(sf::RenderWindow& win, GameLogic& logicRef)
         b.setFillColor(sf::Color(30,30,30,220));
         b.setOutlineColor(sf::Color(212,175,55));
         b.setOutlineThickness(2);
-        b.setPosition(
-            (window.getSize().x - b.getSize().x)/2, y);
+        b.setPosition({(window.getSize().x - b.getSize().x)/2, y});
 
-        t.setFont(font);
         t.setString(label);
         t.setCharacterSize(24);
         t.setFillColor(sf::Color::White);
         auto lb = t.getLocalBounds();
         t.setPosition(
-            b.getPosition().x + (b.getSize().x-lb.width)/2 - lb.left,
-            b.getPosition().y + (b.getSize().y-lb.height)/2 - lb.top);
+            {b.getPosition().x + (b.getSize().x-lb.size.x)/2 - lb.position.x,
+             b.getPosition().y + (b.getSize().y-lb.size.y)/2 - lb.position.y});
     };
     setupSmallBtn(newGameBtn,newGameTxt,"New Game",
                 window.getSize().y/2.f + 40);
@@ -135,18 +156,17 @@ GameScreenGUI::GameScreenGUI(sf::RenderWindow& win, GameLogic& logicRef)
     topNewGameBtn.setFillColor(sf::Color(30,30,30,220));
     topNewGameBtn.setOutlineColor(sf::Color(212,175,55));
     topNewGameBtn.setOutlineThickness(2);
-    topNewGameBtn.setPosition(
+    topNewGameBtn.setPosition({
         window.getSize().x - topNewGameBtn.getSize().x - margin,
-        margin);
+        margin});
 
-    topNewGameTxt.setFont(font);
     topNewGameTxt.setString("New Game");
     topNewGameTxt.setCharacterSize(16);
     topNewGameTxt.setFillColor(sf::Color::White);
     auto lb = topNewGameTxt.getLocalBounds();
     topNewGameTxt.setPosition(
-        topNewGameBtn.getPosition().x + (topNewGameBtn.getSize().x-lb.width)/2 - lb.left,
-        topNewGameBtn.getPosition().y + (topNewGameBtn.getSize().y-lb.height)/2 - lb.top);
+        {topNewGameBtn.getPosition().x + (topNewGameBtn.getSize().x-lb.size.x)/2 - lb.position.x,
+         topNewGameBtn.getPosition().y + (topNewGameBtn.getSize().y-lb.size.y)/2 - lb.position.y});
 }
 
 
@@ -175,39 +195,36 @@ void GameScreenGUI::initTabs() {
         t.collapsedRect.setSize({tabW, tabH});
         t.collapsedRect.setOutlineColor(bd);
         t.collapsedRect.setOutlineThickness(2);
-        t.collapsedRect.setPosition(mX, y);
+        t.collapsedRect.setPosition({mX, y});
 
-        t.collapsedText.setFont(font);
         t.collapsedText.setString(players[i]->getName());
         t.collapsedText.setCharacterSize(18);
         t.collapsedText.setFillColor(sf::Color::White);
         auto cb = t.collapsedRect.getGlobalBounds();
         auto lb = t.collapsedText.getLocalBounds();
         t.collapsedText.setPosition(
-            cb.left + (cb.width  - lb.width)*0.5f - lb.left,
-            cb.top  + (cb.height - lb.height)*0.5f - lb.top
+            {cb.position.x + (cb.size.x  - lb.size.x)*0.5f - lb.position.x,
+             cb.position.y + (cb.size.y - lb.size.y)*0.5f - lb.position.y}
         );
 
         t.panelRect.setSize({220,100});
         t.panelRect.setFillColor({20,20,20,230});
         t.panelRect.setOutlineColor(bd);
         t.panelRect.setOutlineThickness(2);
-        t.panelRect.setPosition(mX+tabW+8, y);
+        t.panelRect.setPosition({mX+tabW+8, y});
 
-        t.moneyText.setFont(font);
         t.moneyText.setCharacterSize(16);
         t.moneyText.setFillColor(sf::Color::Yellow);
         t.moneyText.setString("$" + std::to_string(players[i]->getCoins()));
-        t.moneyText.setPosition(mX+tabW+16, y+12);
+        t.moneyText.setPosition({mX+tabW+16, y+12});
 
-        t.cardText.setFont(font);
         t.cardText.setCharacterSize(14);
         t.cardText.setFillColor(bd);
         t.cardText.setString("CARD");
-        t.cardText.setPosition(mX+tabW+16, y+44);
+        t.cardText.setPosition({mX+tabW+16, y+44});
 
         t.smallCardSprite.setColor({255,255,255,0});
-        t.smallCardSprite.setPosition(mX+tabW+16, y+44);
+        t.smallCardSprite.setPosition({mX+tabW+16, y+44});
         t.expanded = false;
     }
 }
@@ -219,23 +236,24 @@ void GameScreenGUI::selectCardForCurrentPlayer() {
     Role r = players[currentPlayer]->getCard().getRole();
 
     auto& tab = tabs[currentPlayer];
-    tab.smallCardSprite.setTexture(cardTextures[r]);
+    tab.smallCardSprite.setTexture(cardTextures[r], true);
     tab.smallCardSprite.setColor(sf::Color::White);
-    tab.smallCardSprite.setScale(0.5f, 0.5f);
+    tab.smallCardSprite.setScale({0.5f, 0.5f});
 
-    centerSprite.setTexture(cardTextures[r]);
+    centerSprite.setTexture(cardTextures[r], true);
     auto cs = cardTextures[r].getSize();
     float cscale = std::min(window.getSize().x * 0.5f / cs.x,
                             window.getSize().y * 0.5f / cs.y);
-    centerSprite.setScale(cscale, cscale);
-    centerSprite.setPosition((window.getSize().x - cs.x * cscale) / 2,
-                             (window.getSize().y - cs.y * cscale) / 2);
+    centerSprite.setScale({cscale, cscale});
+    centerSprite.setPosition({(window.getSize().x - cs.x * cscale) / 2,
+                              (window.getSize().y - cs.y * cscale) / 2});
     centerVisible = true;
 }
 
 
 void GameScreenGUI::handleEvent(const sf::Event& e, GameState&) {
-    if (e.type == sf::Event::MouseButtonPressed && e.mouseButton.button == sf::Mouse::Left) {
+    if (const auto* mouseButton = e.getIf<sf::Event::MouseButtonPressed>();
+        mouseButton && mouseButton->button == sf::Mouse::Button::Left) {
         sf::Vector2f mp = window.mapPixelToCoords(sf::Mouse::getPosition(window));
 
         for (size_t i = 0; i < players.size(); ++i) {
@@ -246,18 +264,16 @@ void GameScreenGUI::handleEvent(const sf::Event& e, GameState&) {
                 logic.cardAlreadyDrawn(i)) {
 
                 Role r = players[i]->getCard().getRole();
-                std::cout << "[DEBUG] Showing player card: " << cardToString(r) << "\n";
-
-                centerSprite.setTexture(cardTextures[r]);
+                centerSprite.setTexture(cardTextures[r], true);
                 auto cs = cardTextures[r].getSize();
                 float scale = std::min(
                     window.getSize().x * 0.5f / cs.x,
                     window.getSize().y * 0.5f / cs.y
                 );
-                centerSprite.setScale(scale, scale);
+                centerSprite.setScale({scale, scale});
                 centerSprite.setPosition(
-                    (window.getSize().x - cs.x * scale) / 2.f,
-                    (window.getSize().y - cs.y * scale) / 2.f
+                    {(window.getSize().x - cs.x * scale) / 2.f,
+                     (window.getSize().y - cs.y * scale) / 2.f}
                 );
                 centerVisible = true;
                 return;
@@ -375,8 +391,6 @@ void GameScreenGUI::handleEvent(const sf::Event& e, GameState&) {
                     if (logic.getSpyPeekTarget() == -1) {
                         pendingAction = ActionType::SpyPeek;
                         spyPeekButton.setFillColor(activeColor);
-                    } else {
-                        std::cout << "[WARNING] Spy Peek already used this turn\n";
                     }
                     return;
                 }
@@ -412,25 +426,22 @@ void GameScreenGUI::handleEvent(const sf::Event& e, GameState&) {
         logic.selectRandomCardForPlayer(currentPlayer);
 
         Role r = players[currentPlayer]->getCard().getRole();
-        std::cout << "[DEBUG] Showing drawn card: " << cardToString(r) << "\n";
-
-        
         tabs[currentPlayer].cardText.setString(cardToString(r));
-        tabs[currentPlayer].smallCardSprite.setTexture(cardTextures[r]);
+        tabs[currentPlayer].smallCardSprite.setTexture(cardTextures[r], true);
         tabs[currentPlayer].smallCardSprite.setColor(sf::Color::White);
-        tabs[currentPlayer].smallCardSprite.setScale(0.5f, 0.5f);
+        tabs[currentPlayer].smallCardSprite.setScale({0.5f, 0.5f});
 
         // הצגת התמונה הגדולה במרכז
-        centerSprite.setTexture(cardTextures[r]);
+        centerSprite.setTexture(cardTextures[r], true);
         auto cs = cardTextures[r].getSize();
         float scale = std::min(
             window.getSize().x * 0.5f / cs.x,
             window.getSize().y * 0.5f / cs.y
         );
-        centerSprite.setScale(scale, scale);
+        centerSprite.setScale({scale, scale});
         centerSprite.setPosition(
-            (window.getSize().x - cs.x * scale) / 2.f,
-            (window.getSize().y - cs.y * scale) / 2.f
+            {(window.getSize().x - cs.x * scale) / 2.f,
+             (window.getSize().y - cs.y * scale) / 2.f}
         );
         centerVisible = true;
         return;
@@ -441,7 +452,7 @@ void GameScreenGUI::handleEvent(const sf::Event& e, GameState&) {
             return;
         }
 
-        if (showWinner && e.mouseButton.button == sf::Mouse::Left) {
+        if (showWinner) {
             if (newGameBtn.getGlobalBounds().contains(mp)) {
                 overlayChoiceCb(true); return;
             }
@@ -491,7 +502,11 @@ void GameScreenGUI::handleEvent(const sf::Event& e, GameState&) {
 void GameScreenGUI::update() {
     sf::Vector2f mp = window.mapPixelToCoords(sf::Mouse::getPosition(window));
     bool over = !centerVisible && deckArea.contains(mp);
-    window.setMouseCursor(over ? handCursor : arrowCursor);
+    if (over) {
+        if (handCursor) window.setMouseCursor(*handCursor);
+    } else {
+        if (arrowCursor) window.setMouseCursor(*arrowCursor);
+    }
     if (errorVisible && errorTimer.getElapsedTime().asSeconds() > 4) {
     errorVisible = false;
 }
@@ -586,13 +601,6 @@ void GameScreenGUI::render() {
                 break;
         }
     }
-    if (showWinner) {
-    window.draw(overlay);
-    window.draw(winnerText);
-    window.draw(newGameBtn);  window.draw(newGameTxt);
-    window.draw(exitBtn);     window.draw(exitTxt);
-    }
-
     window.draw(topNewGameBtn);
     window.draw(topNewGameTxt);
 
@@ -607,8 +615,8 @@ void GameScreenGUI::showError(const std::string& msg) {
     errorText.setString( msg);
     sf::FloatRect textBounds = errorText.getLocalBounds();
     errorText.setPosition(
-        errorBox.getPosition().x + 10,
-        errorBox.getPosition().y + (errorBox.getSize().y - textBounds.height) / 2 - textBounds.top
+        {errorBox.getPosition().x + 10,
+         errorBox.getPosition().y + (errorBox.getSize().y - textBounds.size.y) / 2 - textBounds.position.y}
     );
     errorVisible = true;
     errorTimer.restart();
@@ -622,13 +630,13 @@ bool GameScreenGUI::isAlive(size_t idx)
 void GameScreenGUI::showWinnerOverlay(const std::string& name,
                                       std::function<void(bool)> onChoice)
 {
-    overlayChoiceCb = std::move(onChoice);   // שומרים
+    overlayChoiceCb = std::move(onChoice);
 
     winnerText.setString("Winner: " + name + "!");
     auto lb = winnerText.getLocalBounds();
     winnerText.setPosition(
-        (window.getSize().x - lb.width) / 2.f - lb.left,
-        (window.getSize().y - lb.height) / 2.f - 120);
+        {(window.getSize().x - lb.size.x) / 2.f - lb.position.x,
+         (window.getSize().y - lb.size.y) / 2.f - 120});
 
     showWinner = true;
 }
